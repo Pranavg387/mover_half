@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "125499155323",
+    "firebase_url": "https://moverf-60aeb.firebaseio.com",
+    "project_id": "moverf-60aeb",
+    "storage_bucket": "moverf-60aeb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:125499155323:android:184cd0a2ae1d5d1af753de",
+        "android_client_info": {
+          "package_name": "com.example.mover_f"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "125499155323-dvm3b016creu0hrv7rsuse6dbp1ie0l2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mover_f",
+            "certificate_hash": "eef346c2a9dbafede9b99cfb090fb03e41a374bc"
+          }
+        },
+        {
+          "client_id": "125499155323-70irfj5p4q3ohtls6m4ug88qlpbqnq7s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO79iYODZlqN51cCGdWl-eoKsiz-kPUTI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "125499155323-70irfj5p4q3ohtls6m4ug88qlpbqnq7s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
