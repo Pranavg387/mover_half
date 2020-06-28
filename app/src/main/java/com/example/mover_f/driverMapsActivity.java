@@ -140,7 +140,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                 GeoFire geoFire = new GeoFire(ref);
                 geoFire.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
 
-                //getClosetDriver();
+
 
             }
         };
