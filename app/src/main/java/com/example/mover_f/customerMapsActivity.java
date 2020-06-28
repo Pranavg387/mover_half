@@ -461,7 +461,7 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
     private Boolean driverFound = false;
     private String driverFoundID ;
     private void getClosetDriver() {
-        DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference().child("driverAvailable");
+        DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference().child("driversAvailable");
 
         GeoFire geoFire = new GeoFire(driverLocation);
         GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(pickupLocation.latitude, pickupLocation.longitude), radius);
@@ -475,7 +475,7 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                 if(!driverFound){
                     driverFound = true;
                     driverFoundID = key;
-                    Toast.makeText(customerMapsActivity.this, "Driver Found", Toast.LENGTH_SHORT).show();
+                   // Toast.makeText(customerMapsActivity.this, "Driver Found", Toast.LENGTH_SHORT).show();
 
                     requestRide.setText("Driver Found");
 
