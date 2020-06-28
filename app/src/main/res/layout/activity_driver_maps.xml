@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".DriverMapsActivity"
-    >
+    tools:context=".driverMapsActivity">
+
 
     <EditText
         android:id="@+id/et_address"
@@ -56,7 +55,7 @@
         android:id="@+id/current_location"
         android:layout_width="78dp"
         android:layout_height="73dp"
-        android:src="@drawable/ic_action_name"
+        android:background="@android:drawable/ic_menu_myplaces"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/map_fragment"
         app:layout_constraintHorizontal_bias="0.974"

@@ -16,13 +16,13 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login2);
 
-        mDriver = (Button)findViewById(R.id.driver);
-        mCustomer=(Button)findViewById(R.id.customer);
+        mDriver = findViewById(R.id.driver);
+        mCustomer= findViewById(R.id.customer);
 
         mDriver.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(LoginActivity.this, DriverLoginActivity.class);
+                Intent intent = new Intent(LoginActivity.this, driverLoginActivity.class);
                 startActivity(intent);
                 finish();
                 return;
@@ -32,7 +32,7 @@ public class LoginActivity extends AppCompatActivity {
         mCustomer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(LoginActivity.this, CustomerLoginActivity.class);
+                Intent intent = new Intent(LoginActivity.this, customerLoginActivity.class);
                 startActivity(intent);
                 finish();
                 return;

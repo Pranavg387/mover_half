@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent Intent =  new Intent(MainActivity.this,DriverMapsActivity.class);
+                Intent Intent =  new Intent(MainActivity.this,LoginActivity.class);
                 startActivity(Intent);
                 finish();
                 return;
