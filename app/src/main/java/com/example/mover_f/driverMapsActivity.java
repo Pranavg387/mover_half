@@ -60,14 +60,18 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class driverMapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -92,13 +96,14 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     private Marker mDriverMarker = null;
     private long backPressedTime;
     private Toast backToast;
+    private String customerId = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_maps);
 
-        initGoogleMap();
+
         mSearchAddress = findViewById(R.id.et_address);
         mBtnLocate = findViewById(R.id.btn_locate);
         mBtnLocate.setOnClickListener(this::geoLocate);
@@ -118,7 +123,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
         mapFragment.getMapAsync(this);
 
 
-
+        initGoogleMap();
 
         mLocationClient = new FusedLocationProviderClient(this);
         mLocationCallback = new LocationCallback() {
@@ -135,18 +140,134 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                 //showMarker(location.getLatitude(), location.getLongitude());
                 //Send to Database
                 String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
+                DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
+                DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference("driversWorking");
+                GeoFire geoFireAvailable = new GeoFire(refAvailable);
+                GeoFire geoFireWorking = new GeoFire(refWorking);
+                switch (customerId){
+                    case "":
+                        geoFireWorking.removeLocation(userId);
+                        geoFireAvailable.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
+                        break;
 
-                GeoFire geoFire = new GeoFire(ref);
-                geoFire.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
+                    default:
+                        geoFireAvailable.removeLocation(userId);
+                        geoFireWorking.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
+                        break;
 
+
+                }
 
 
             }
         };
 
+        getAssignedCustomer();
 
     }
+
+    private void getAssignedCustomer(){
+        String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverId).child("customerRideId");
+        assignedCustomerRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                      customerId = dataSnapshot.getValue().toString();
+                        getAssignedCustomerPickupLocation();
+                    }
+                }
+
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+    private void getAssignedCustomerPickupLocation(){
+        DatabaseReference assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerId).child("l");
+        assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    List<Object> map = (List<Object>) dataSnapshot.getValue();
+                    double locationLat = 0;
+                    double locationLng = 0;
+                    if(map.get(0) != null){
+                        locationLat = Double.parseDouble(map.get(0).toString());
+                    }
+                    if(map.get(1) != null){
+                        locationLng = Double.parseDouble(map.get(1).toString());
+                    }
+                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
+                    mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("pickup location"));
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+
+   /* private void getAssignedCustomer() {
+
+        String driverId=   FirebaseAuth.getInstance().getUid();
+        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverId);
+        assignedCustomerRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+                    if(map.get("customerRideId")!=null){
+                        customerId = map.get("customerRideId").toString();
+                        getAssignedCustomerPickupLocation();
+                    }
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+
+    }
+
+    private void getAssignedCustomerPickupLocation() {
+        String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerId).child(driverId);
+        assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    List<Object> map = (List<Object>) dataSnapshot.getValue();
+                    double locationLat =0;
+                    double locationLng = 0;
+                    if(map.get(0)!=null) {
+                        locationLat = Double.parseDouble(map.get(0).toString());
+                    }
+                    if(map.get(0)!=null){
+                        locationLng = Double.parseDouble(map.get(1).toString());
+
+                    }
+                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
+                    mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("Pickup Location"));
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+
+    }*/
 
     @Override
     public void onBackPressed() {

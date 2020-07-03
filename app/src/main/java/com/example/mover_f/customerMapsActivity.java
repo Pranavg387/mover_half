@@ -71,6 +71,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -140,7 +141,7 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
 
                         getCurrentLocation();
                         getLocationUpdate();
-                        getClosetDriver();
+                        getClosestDriver();
 
 
                     }
@@ -149,14 +150,14 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
 
         });
 
-        initGoogleMap();
+
 
         SupportMapFragment mapFragment =
                 (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(this);
 
 
-
+        initGoogleMap();
 
         mLocationClient = new FusedLocationProviderClient(this);
         mLocationCallback = new LocationCallback() {
@@ -456,7 +457,7 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
 
 
     }
-  //FIND NEAREST DRIVERS
+  /*FIND NEAREST DRIVERS
     private int radius=1;
     private Boolean driverFound = false;
     private String driverFoundID ;
@@ -476,8 +477,13 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                     driverFound = true;
                     driverFoundID = key;
                    // Toast.makeText(customerMapsActivity.this, "Driver Found", Toast.LENGTH_SHORT).show();
-
-                    requestRide.setText("Driver Found");
+                    DatabaseReference driverRef=FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child("driversFound");
+                            String customerRideId=   FirebaseAuth.getInstance().getUid();
+                    HashMap map = new HashMap();
+                    map.put("customerRideId",customerRideId);
+                    driverRef.updateChildren(map);
+                    getDriverLocation();
+                    requestRide.setText("Looking for Drivers");
 
                 }
 
@@ -522,6 +528,8 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                     List<Object> map = (List<Object>) dataSnapshot.getValue();
                     double locationLat =0;
                     double locationLng = 0;
+
+                    Toast.makeText(customerMapsActivity.this, "IN DRIVER LOCATION", Toast.LENGTH_SHORT).show();
                     requestRide.setText("Driver Found");
                     if(map.get(0)!=null) {
                         locationLat = Double.parseDouble(map.get(0).toString());
@@ -547,7 +555,94 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
         });
 
 
+    }*/
+  private int radius = 1;
+    private Boolean driverFound = false;
+    private String driverFoundID;
+    private void getClosestDriver(){
+        DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference().child("driversAvailable");
+
+        GeoFire geoFire = new GeoFire(driverLocation);
+        GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(pickupLocation.latitude, pickupLocation.longitude), radius);
+        geoQuery.removeAllListeners();
+
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+                if (!driverFound){
+                    driverFound = true;
+                    driverFoundID = key;
+
+                    DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID);
+                    String customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    HashMap map = new HashMap();
+                    map.put("customerRideId", customerId);
+                    driverRef.updateChildren(map);
+
+                    getDriverLocation();
+                    requestRide.setText("Looking for Driver Location....");
+
+                }
+            }
+
+            @Override
+            public void onKeyExited(String key) {
+
+            }
+
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+
+            }
+
+            @Override
+            public void onGeoQueryReady() {
+                if (!driverFound)
+                {
+                    radius++;
+                    getClosestDriver();
+                }
+            }
+
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+
+            }
+        });
     }
+
+    private void getDriverLocation(){
+        DatabaseReference driverLocationRef = FirebaseDatabase.getInstance().getReference().child("driversWorking").child(driverFoundID).child("l");
+        driverLocationRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    List<Object> map = (List<Object>) dataSnapshot.getValue();
+                    double locationLat = 0;
+                    double locationLng = 0;
+                    requestRide.setText("Driver Found");
+                    if(map.get(0) != null){
+                        locationLat = Double.parseDouble(map.get(0).toString());
+                    }
+                    if(map.get(1) != null){
+                        locationLng = Double.parseDouble(map.get(1).toString());
+                    }
+                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
+                    if(mDriverMarker != null){
+                        mDriverMarker.remove();
+                    }
+                    mDriverMarker = mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("your driver"));
+                }
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+
+    }
+
 }
 
 
