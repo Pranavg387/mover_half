@@ -98,11 +98,11 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     private Toast backToast;
     private String customerId = "";
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_maps);
-
 
         mSearchAddress = findViewById(R.id.et_address);
         mBtnLocate = findViewById(R.id.btn_locate);
@@ -137,7 +137,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                 //Toast.makeText(DriverMapsActivity.this, "LocationResult: Location is " + location.getLatitude() + "," + location.getLongitude(), Toast.LENGTH_SHORT).show();
                 Log.d("MAP_DEBUG", "onLocationResult: Location is " + location.getLatitude() + " ," + location.getLongitude());
                 //gotoLocation(location.getLatitude(), location.getLongitude());
-                //showMarker(location.getLatitude(), location.getLongitude());
+                 showMarker(location.getLatitude(), location.getLongitude());
                 //Send to Database
                 String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
                 DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
@@ -212,62 +212,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     }
 
 
-   /* private void getAssignedCustomer() {
 
-        String driverId=   FirebaseAuth.getInstance().getUid();
-        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverId);
-        assignedCustomerRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists()){
-                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
-                    if(map.get("customerRideId")!=null){
-                        customerId = map.get("customerRideId").toString();
-                        getAssignedCustomerPickupLocation();
-                    }
-                }
-
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
-
-
-    }
-
-    private void getAssignedCustomerPickupLocation() {
-        String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerId).child(driverId);
-        assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists()){
-                    List<Object> map = (List<Object>) dataSnapshot.getValue();
-                    double locationLat =0;
-                    double locationLng = 0;
-                    if(map.get(0)!=null) {
-                        locationLat = Double.parseDouble(map.get(0).toString());
-                    }
-                    if(map.get(0)!=null){
-                        locationLng = Double.parseDouble(map.get(1).toString());
-
-                    }
-                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
-                    mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("Pickup Location"));
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
-
-
-    }*/
 
     @Override
     public void onBackPressed() {
