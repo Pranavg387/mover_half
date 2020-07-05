@@ -43,8 +43,7 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBO79iYODZlqN51cCGdWl-eoKsiz-kPUTI" />
 
-        <activity android:name=".LoginActivity"
-            android:screenOrientation="portrait"/>
+        <activity android:name=".LoginActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

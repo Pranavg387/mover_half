@@ -67,8 +67,10 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EventListener;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -94,6 +96,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     private LatLng mDestination;
     private List<Polyline> polylines = null;
     private Marker mDriverMarker = null;
+    private Marker mPickupLocation = null;
     private long backPressedTime;
     private Toast backToast;
     private String customerId = "";
@@ -175,7 +178,17 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                 if(dataSnapshot.exists()){
                       customerId = dataSnapshot.getValue().toString();
                         getAssignedCustomerPickupLocation();
+                    }else{
+                    customerId = "";
+                    if(mPickupLocation!= null){
+                        mPickupLocation.remove();
                     }
+                    if (assignedCustomerPickupLocationRefListener != null){
+                        assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
+                    }
+
+
+                }
                 }
 
 
@@ -184,13 +197,14 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
             }
         });
     }
-
+    DatabaseReference assignedCustomerPickupLocationRef;
+    ValueEventListener assignedCustomerPickupLocationRefListener;
     private void getAssignedCustomerPickupLocation(){
-        DatabaseReference assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerId).child("l");
-        assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
+        assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerId).child("l");
+       assignedCustomerPickupLocationRefListener= assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists()){
+                if(dataSnapshot.exists() && !customerId.equals("")){
                     List<Object> map = (List<Object>) dataSnapshot.getValue();
                     double locationLat = 0;
                     double locationLng = 0;
@@ -198,10 +212,13 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                         locationLat = Double.parseDouble(map.get(0).toString());
                     }
                     if(map.get(1) != null){
-                        locationLng = Double.parseDouble(map.get(1).toString());
+                        locationLng  = Double.parseDouble(map.get(1).toString());
                     }
                     LatLng driverLatLng = new LatLng(locationLat,locationLng);
-                    mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("pickup location"));
+                    if (mPickupLocation != null) {
+                        mPickupLocation.remove();
+                    }
+                    mPickupLocation=mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("pickup location"));
                 }
             }
 
@@ -274,7 +291,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                 Location location = task.getResult();
                 mDestination = new LatLng(location.getLatitude(), location.getLongitude());
 
-                showMarker(location.getLatitude(), location.getLongitude());
+                //showMarker(location.getLatitude(), location.getLongitude());
                 gotoLocation(location.getLatitude(), location.getLongitude());
 
             }
