@@ -5,62 +5,47 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.inputmethodservice.InputMethodService;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.mover_f.R;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
 import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapFragment;
-import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -70,7 +55,6 @@ import com.google.firebase.database.ValueEventListener;
 
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -81,23 +65,21 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
     private static final int GPS_REQUEST_CODE = 9003;
     boolean mLocationPermissionGranted;
     private GoogleMap mGoogleMap;
-    private Button mBtnLocate;
+
     private EditText mSearchAddress;
-   // private Button mCurrent_Location;
-    double bottomBoundary = 28.546315;
-    double leftBoundary = 77.054215;
-    double topBoundary = 28.733739;
-    double rightBoundary = 77.479120;
-    public static final int DEFAULT_ZOOM = 17;
+
+    public static final int DEFAULT_ZOOM = 15;
     private FusedLocationProviderClient mLocationClient;
     private LocationCallback mLocationCallback;
     private LatLng pickupLocation;
     private List<Polyline> polylines = null;
-    private Button requestRide;
+    private Button requestRide,mSettings,mBtnLocate;
     private long backPressedTime;
     private Toast backToast;
-    Marker mDriverMarker = null;
+    Marker mCustomerMarker = null;
+    Marker mDestinationMarker = null;
     private Boolean requestBol = false;
+    private TextView cancelRide;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,13 +88,26 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
         mSearchAddress = findViewById(R.id.et_address);
         mBtnLocate = findViewById(R.id.btn_locate);
         mBtnLocate.setOnClickListener(this::geoLocate);
+        cancelRide = findViewById(R.id.cancelRide);
 
+        mSettings = findViewById(R.id.mSettings);
+        mSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(customerMapsActivity.this, customerSettingsActivity.class);
+                startActivity(intent);
+
+                return;
+
+            }
+        });
 
 
         requestRide = findViewById(R.id.requestRide);
         requestRide.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                cancelRide.setText("Click again to Cancel");
 
                 if (requestBol){
                     requestBol = false;
@@ -131,10 +126,13 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                     GeoFire geoFire = new GeoFire(ref);
                     geoFire.removeLocation(userId);
 
-                    if(mMarker != null){
-                        mMarker.remove();
+                    if(mDriverMarker != null){
+                        mDriverMarker.remove();
                     }
+                    cancelRide.setText("");
                     requestRide.setText("LOOK FOR MOVERS");
+
+
 
 
                 }else{  requestBol = true;
@@ -151,10 +149,10 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                         gotoLocation(location.getLatitude(), location.getLongitude());
                         pickupLocation = new LatLng(location.getLatitude(), location.getLongitude());
                         Log.d("MAP_DEBUG", "pickup Location " + pickupLocation);
-                        if (mDriverMarker != null) {
-                            mDriverMarker.remove();
+                        if (mCustomerMarker != null) {
+                            mCustomerMarker.remove();
                         }
-                        mDriverMarker = mGoogleMap.addMarker(new MarkerOptions().position(pickupLocation).title("You are Here"));
+                        mCustomerMarker = mGoogleMap.addMarker(new MarkerOptions().position(pickupLocation).title("You are Here"));
                         getCurrentLocation();
                         getLocationUpdate();
                         getClosestDriver();
@@ -224,10 +222,11 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                     driverFound = true;
                     driverFoundID = key;
 
-                    DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID);
+                    DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID).child("customerRequest");
                     String customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
                     HashMap map = new HashMap();
                     map.put("customerRideId", customerId);
+                    map.put("destination", locationName);
                     driverRef.updateChildren(map);
 
                     getDriverLocation();
@@ -261,7 +260,7 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
             }
         });
     }
-    Marker mMarker;
+    Marker mDriverMarker;
     DatabaseReference driverLocationRef;
     private ValueEventListener driverLocationRefListener;
     private void getDriverLocation(){
@@ -281,8 +280,8 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                         locationLng = Double.parseDouble(map.get(1).toString());
                     }
                     LatLng driverLatLng = new LatLng(locationLat,locationLng);
-                    if(mMarker != null){
-                        mMarker.remove();
+                    if(mDriverMarker != null){
+                        mDriverMarker.remove();
                     }
                     Location loc1 = new Location("");
                     loc1.setLatitude(pickupLocation.latitude);
@@ -301,10 +300,10 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                     }
 
 
-                    if(mMarker != null){
-                        mMarker.remove();
+                    if(mDriverMarker != null){
+                        mDriverMarker.remove();
                     }
-                    mMarker =mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("your driver"));
+                    mDriverMarker =mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("Your Driver").icon(BitmapDescriptorFactory.fromResource(R.mipmap.driver_foreground)));
 
 
                 }
@@ -377,10 +376,10 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
             if (task.isSuccessful()) {
                 Location location = task.getResult();
                 //showMarker(location.getLatitude(), location.getLongitude());
-                if(mDriverMarker != null){
-                    mDriverMarker.remove();
+                if(mCustomerMarker != null){
+                    mCustomerMarker.remove();
                 }
-                mDriverMarker = mGoogleMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude())).title("You are Here"));
+                mCustomerMarker = mGoogleMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude())).title("You are Here"));
                 gotoLocation(location.getLatitude(), location.getLongitude());
                 pickupLocation= new LatLng(location.getLatitude(), location.getLongitude());
                 Log.d("MAP_DEBUG", "pickup Location " + pickupLocation);
@@ -392,11 +391,11 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
 
 
     }
-
+    String locationName;
     private void geoLocate(View view) {
         hideSoftKeyboard(view);
 
-        String locationName = mSearchAddress.getText().toString();
+         locationName = mSearchAddress.getText().toString();
 
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 
@@ -408,7 +407,12 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
 
                 gotoLocation(address.getLatitude(), address.getLongitude());
 
-                showMarker(address.getLatitude(), address.getLongitude());
+                //showMarker
+                if(mDestinationMarker != null){
+                    mDestinationMarker.remove();
+                }
+                mDestinationMarker =mGoogleMap.addMarker(new MarkerOptions().position(new LatLng(address.getLatitude(), address.getLongitude())).title("Destination"));
+
 
                 // Toast.makeText(this, address.getLocality(), Toast.LENGTH_SHORT).show();
 

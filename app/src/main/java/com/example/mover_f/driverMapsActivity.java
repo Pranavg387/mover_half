@@ -5,23 +5,18 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.inputmethodservice.InputMethodService;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
@@ -29,36 +24,30 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.mover_f.R;
+import com.bumptech.glide.Glide;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapFragment;
-import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -69,8 +58,6 @@ import com.google.firebase.database.ValueEventListener;
 
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EventListener;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -90,7 +77,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     double leftBoundary = 77.054215;
     double topBoundary = 28.733739;
     double rightBoundary = 77.479120;
-    public static final int DEFAULT_ZOOM = 17;
+    public static final int DEFAULT_ZOOM = 15;
     private FusedLocationProviderClient mLocationClient;
     private LocationCallback mLocationCallback;
     private LatLng mDestination;
@@ -99,7 +86,14 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     private Marker mPickupLocation = null;
     private long backPressedTime;
     private Toast backToast;
+
     private String customerId = "";
+    private LinearLayout mCustomerInfo;
+
+    private ImageView mCustomerProfileImage;
+
+    private TextView mCustomerName, mCustomerPhone, mCustomerDestination;
+
 
 
     @Override
@@ -125,8 +119,17 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                 (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(this);
 
+        mCustomerInfo = (LinearLayout) findViewById(R.id.customerInfo);
 
+        mCustomerProfileImage = (ImageView) findViewById(R.id.customerProfileImage);
+
+        mCustomerName = (TextView) findViewById(R.id.customerName);
+        mCustomerPhone = (TextView) findViewById(R.id.customerPhone);
+        mCustomerDestination = (TextView) findViewById(R.id.customerDestination);
+        
         initGoogleMap();
+
+
 
         mLocationClient = new FusedLocationProviderClient(this);
         mLocationCallback = new LocationCallback() {
@@ -171,13 +174,15 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
 
     private void getAssignedCustomer(){
         String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverId).child("customerRideId");
+        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverId).child("customerRequest").child("customerRideId");
         assignedCustomerRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if(dataSnapshot.exists()){
                       customerId = dataSnapshot.getValue().toString();
                         getAssignedCustomerPickupLocation();
+                    getAssignedCustomerDestination();
+                    getAssignedCustomerInfo();
                     }else{
                     customerId = "";
                     if(mPickupLocation!= null){
@@ -186,6 +191,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                     if (assignedCustomerPickupLocationRefListener != null){
                         assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
                     }
+                    mCustomerInfo.setVisibility(View.GONE);
 
 
                 }
@@ -197,6 +203,57 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
             }
         });
     }
+
+    private void getAssignedCustomerDestination() {
+        String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverId).child("customerRequest").child("destination");
+        assignedCustomerRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    String destination = dataSnapshot.getValue().toString();
+                    mCustomerDestination.setText("Destination: " + destination);
+
+                }else{
+                    mCustomerDestination.setText("Destination:-- " ); }
+            }
+
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+    private void getAssignedCustomerInfo() {
+        mCustomerInfo.setVisibility(View.VISIBLE);
+       DatabaseReference mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Customers").child(customerId);
+        mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                mCustomerInfo.setVisibility(View.VISIBLE);
+                if(dataSnapshot.exists() && dataSnapshot.getChildrenCount()>0){
+                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+                    if(map.get("name")!=null){
+                       mCustomerName.setText("Name:" +map.get("name").toString());
+                    }
+                    if(map.get("phone")!=null){
+
+                        mCustomerPhone.setText("Conact :" +map.get("phone").toString());
+                    }
+                    if(map.get("profileImageUrl")!=null){
+                         Glide.with(getApplication()).load(map.get("profileImageUrl").toString()).into(mCustomerProfileImage);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+
     DatabaseReference assignedCustomerPickupLocationRef;
     ValueEventListener assignedCustomerPickupLocationRefListener;
     private void getAssignedCustomerPickupLocation(){
@@ -341,7 +398,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
         if (mDriverMarker != null) {
             mDriverMarker.remove();
         }
-        mDriverMarker = mGoogleMap.addMarker(new MarkerOptions().position(new LatLng(lat,lng)).title("You are Here"));
+        mDriverMarker = mGoogleMap.addMarker(new MarkerOptions().position(new LatLng(lat,lng)).title("You are Here").icon(BitmapDescriptorFactory.fromResource(R.mipmap.driver_foreground)));
     }
 
     private void gotoLocation(double lat, double lng) {

@@ -21,18 +21,21 @@ import com.google.firebase.database.FirebaseDatabase;
 
 
 public class driverLoginActivity extends AppCompatActivity {
-    private ImageButton mlogin, mregister;
+    private Button mlogin, mregister;
     private EditText memail, mpassword;
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener firebaseAuthListener;
     DatabaseReference databaseUsers;
+    private EditText name;
+
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+        protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_login);
         databaseUsers = FirebaseDatabase.getInstance().getReference();
         mAuth = FirebaseAuth.getInstance();
+
         firebaseAuthListener= new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -46,6 +49,7 @@ public class driverLoginActivity extends AppCompatActivity {
             }
         };
 
+        name = findViewById(R.id.newName);
         memail = findViewById(R.id.email);
         mpassword= findViewById(R.id.password);
         mlogin= findViewById(R.id.login);
@@ -59,7 +63,7 @@ public class driverLoginActivity extends AppCompatActivity {
                 mAuth.createUserWithEmailAndPassword(email,password).addOnCompleteListener(driverLoginActivity.this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
-                        if(!task.isSuccessful()){
+                        if(!task.isSuccessful() ){
                             Toast.makeText(driverLoginActivity.this,"Sign up Error",Toast.LENGTH_SHORT).show();
                         }else
                         {
@@ -67,6 +71,7 @@ public class driverLoginActivity extends AppCompatActivity {
 
                             String id = databaseUsers.push().getKey();
                             databaseUsers.child("Users").child("Drivers").setValue(id);
+
                         }
                     }
                 });
