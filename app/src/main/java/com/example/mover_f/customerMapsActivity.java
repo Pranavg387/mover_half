@@ -23,9 +23,14 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
@@ -58,6 +63,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class customerMapsActivity extends AppCompatActivity implements OnMapReadyCallback{
     private static final int PERMISSION_REQUEST_CODE = 9001;
@@ -71,7 +77,7 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
     public static final int DEFAULT_ZOOM = 15;
     private FusedLocationProviderClient mLocationClient;
     private LocationCallback mLocationCallback;
-    private LatLng pickupLocation;
+    private LatLng pickupLocation, destinationLatLng;
     private List<Polyline> polylines = null;
     private Button requestRide,mSettings,mBtnLocate;
     private long backPressedTime;
@@ -80,6 +86,15 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
     Marker mDestinationMarker = null;
     private Boolean requestBol = false;
     private TextView cancelRide;
+String requestService;
+    private LinearLayout mDriverInfo;
+
+    private ImageView mDriverProfileImage;
+
+    private TextView mDriverName, mDriverPhone, mDriverCar;
+
+    private RadioGroup mRadioGroup;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,7 +105,20 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
         mBtnLocate.setOnClickListener(this::geoLocate);
         cancelRide = findViewById(R.id.cancelRide);
 
-        mSettings = findViewById(R.id.mSettings);
+        //destinationLatLng = new LatLng(0.0,0.0);
+        mDriverInfo = findViewById(R.id.driverInfo);
+
+        mDriverProfileImage = findViewById(R.id.driverProfileImage);
+
+        mDriverName = findViewById(R.id.driverName);
+        mDriverPhone = findViewById(R.id.driverPhone);
+        mDriverCar = findViewById(R.id.driverCar);
+
+
+        mRadioGroup = findViewById(R.id.radioGroup);
+        mRadioGroup.check(R.id.Truck);
+
+        mSettings = findViewById(R.id.settings);
         mSettings.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -113,10 +141,12 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                     requestBol = false;
                     geoQuery.removeAllListeners();
                     driverLocationRef.removeEventListener(driverLocationRefListener);
+
                     if (driverFoundID  != null){
-                        DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID);
-                        driverRef.setValue(true);
+                        DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID).child("customerRequest");
+                        driverRef.removeValue();
                         driverFoundID = null;
+
                     }
                     driverFound = false;
                     radius = 1;
@@ -129,13 +159,23 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
                     if(mDriverMarker != null){
                         mDriverMarker.remove();
                     }
+                    mRadioGroup.setVisibility(View.VISIBLE);
+
                     cancelRide.setText("");
                     requestRide.setText("LOOK FOR MOVERS");
+                    mDriverInfo.setVisibility(View.GONE);
 
+                }else{
+                    int selectId = mRadioGroup.getCheckedRadioButtonId();
 
+                    final RadioButton radioButton = findViewById(selectId);
 
+                    if (radioButton.getText() == null){
+                        return;
+                    }
 
-                }else{  requestBol = true;
+                    requestService = radioButton.getText().toString();
+                    requestBol = true;
                 if (ActivityCompat.checkSelfPermission(customerMapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(customerMapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
                     return;
@@ -219,19 +259,41 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
                 if (!driverFound && requestBol){
-                    driverFound = true;
-                    driverFoundID = key;
 
-                    DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID).child("customerRequest");
-                    String customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                    HashMap map = new HashMap();
-                    map.put("customerRideId", customerId);
-                    map.put("destination", locationName);
-                    driverRef.updateChildren(map);
+                    DatabaseReference mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(key);
+                    mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            if (dataSnapshot.exists() && dataSnapshot.getChildrenCount()>0){
+                                Map<String, Object> driverMap = (Map<String, Object>) dataSnapshot.getValue();
+                                if (driverFound){
+                                    return;
+                                }
 
-                    getDriverLocation();
-                    requestRide.setText("Looking for Driver Location....");
+                                if(driverMap.get("service").equals(requestService)){
+                                    driverFound = true;
+                                    driverFoundID = dataSnapshot.getKey();
 
+                                    DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID).child("customerRequest");
+                                    String customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                                    HashMap map = new HashMap();
+                                    map.put("customerRideId", customerId);
+                                    map.put("destination", destination);
+                                    map.put("destinationLat", destinationLatLng.latitude);
+                                    map.put("destinationLng", destinationLatLng.longitude);
+                                    driverRef.updateChildren(map);
+
+                                    getDriverLocation();
+                                    getDriverInfo();
+                                   // getHasRideEnded();
+                                    requestRide.setText("Looking for Driver Location....");
+                                }
+                            }
+                        }
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                        }
+                    });
                 }
             }
 
@@ -260,6 +322,39 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
             }
         });
     }
+
+    private void getDriverInfo(){
+
+        DatabaseReference mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID);
+        mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                mRadioGroup.setVisibility(View.GONE);
+                mDriverInfo.setVisibility(View.VISIBLE);
+                if(dataSnapshot.exists() && dataSnapshot.getChildrenCount()>0){
+                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+                    if(map.get("name")!=null){
+                       mDriverName.setText("Name:" +map.get("name").toString());
+                    }
+                    if(map.get("phone")!=null){
+                        mDriverPhone.setText(dataSnapshot.child("phone").getValue().toString());
+                    }
+                    if(map.get("car")!=null){
+                        mDriverCar.setText("Car :" +map.get("car").toString());
+                    }
+                    if(dataSnapshot.child("profileImageUrl").getValue()!=null){
+                        Glide.with(getApplication()).load(map.get("profileImageUrl").toString()).into(mDriverProfileImage);
+                    }
+
+
+                }
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
     Marker mDriverMarker;
     DatabaseReference driverLocationRef;
     private ValueEventListener driverLocationRefListener;
@@ -391,20 +486,22 @@ public class customerMapsActivity extends AppCompatActivity implements OnMapRead
 
 
     }
-    String locationName;
+
+
+    String destination;
     private void geoLocate(View view) {
         hideSoftKeyboard(view);
 
-         locationName = mSearchAddress.getText().toString();
+         destination = mSearchAddress.getText().toString();
 
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
 
         try {
-            List<Address> addressList = geocoder.getFromLocationName(locationName, 3);
+            List<Address> addressList = geocoder.getFromLocationName(destination, 3);
 
             if (addressList.size() > 0) {
                 Address address = addressList.get(0);
-
+                destinationLatLng = new LatLng(address.getLatitude(), address.getLongitude());
                 gotoLocation(address.getLatitude(), address.getLongitude());
 
                 //showMarker

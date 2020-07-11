@@ -18,12 +18,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".customerSettingsActivity"
-            android:launchMode="singleTask"></activity>
+        <activity android:name=".driverSettingsActivity"></activity>
+        <activity
+            android:name=".customerSettingsActivity"
+            android:launchMode="singleTask" />
         <activity
             android:name=".customerMapsActivity"
-            android:screenOrientation="portrait"
-            android:launchMode="singleTask"/>
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".customerLoginActivity"
             android:launchMode="singleTask"
@@ -31,12 +33,11 @@
         <activity
             android:name=".driverLoginActivity"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
-            />
+            android:screenOrientation="portrait" />
         <activity
             android:name=".driverMapsActivity"
-            android:screenOrientation="portrait"
-            android:launchMode="singleTask"/>
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait" />
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").

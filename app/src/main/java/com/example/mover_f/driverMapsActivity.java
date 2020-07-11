@@ -70,9 +70,9 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     private static final int GPS_REQUEST_CODE = 9003;
     boolean mLocationPermissionGranted;
     private GoogleMap mGoogleMap;
-    private Button mBtnLocate;
+    private Button mBtnLocate,mSettings;
     private EditText mSearchAddress;
-    private ImageButton mCurrent_Location;
+    private Button mCurrent_Location;
     double bottomBoundary = 28.546315;
     double leftBoundary = 77.054215;
     double topBoundary = 28.733739;
@@ -86,7 +86,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     private Marker mPickupLocation = null;
     private long backPressedTime;
     private Toast backToast;
-
+    LatLng pickUpLatLng,destinationLatLng;
     private String customerId = "";
     private LinearLayout mCustomerInfo;
 
@@ -105,10 +105,14 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
         mBtnLocate = findViewById(R.id.btn_locate);
         mBtnLocate.setOnClickListener(this::geoLocate);
 
+
+
         mCurrent_Location = findViewById(R.id.current_location);
         mCurrent_Location.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                mCurrent_Location.setText("ON DUTY");
                 getCurrentLocation();
                 getLocationUpdate();
 
@@ -119,17 +123,26 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                 (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(this);
 
-        mCustomerInfo = (LinearLayout) findViewById(R.id.customerInfo);
+        mCustomerInfo = findViewById(R.id.customerInfo);
 
-        mCustomerProfileImage = (ImageView) findViewById(R.id.customerProfileImage);
+        mCustomerProfileImage = findViewById(R.id.customerProfileImage);
 
-        mCustomerName = (TextView) findViewById(R.id.customerName);
-        mCustomerPhone = (TextView) findViewById(R.id.customerPhone);
-        mCustomerDestination = (TextView) findViewById(R.id.customerDestination);
+        mCustomerName = findViewById(R.id.customerName);
+        mCustomerPhone = findViewById(R.id.customerPhone);
+        mCustomerDestination = findViewById(R.id.customerDestination);
+        mSettings = findViewById(R.id.settings);
+
         
         initGoogleMap();
 
-
+        mSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(driverMapsActivity.this, driverSettingsActivity.class);
+                startActivity(intent);
+                return;
+            }
+        });
 
         mLocationClient = new FusedLocationProviderClient(this);
         mLocationCallback = new LocationCallback() {
@@ -185,6 +198,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                     getAssignedCustomerInfo();
                     }else{
                     customerId = "";
+                    mCurrent_Location.setText("OFF DUTY");
                     if(mPickupLocation!= null){
                         mPickupLocation.remove();
                     }
@@ -226,7 +240,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
     }
 
     private void getAssignedCustomerInfo() {
-        mCustomerInfo.setVisibility(View.VISIBLE);
+
        DatabaseReference mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Customers").child(customerId);
         mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -239,7 +253,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                     }
                     if(map.get("phone")!=null){
 
-                        mCustomerPhone.setText("Conact :" +map.get("phone").toString());
+                        mCustomerPhone.setText("Contact :" +map.get("phone").toString());
                     }
                     if(map.get("profileImageUrl")!=null){
                          Glide.with(getApplication()).load(map.get("profileImageUrl").toString()).into(mCustomerProfileImage);
@@ -271,11 +285,11 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
                     if(map.get(1) != null){
                         locationLng  = Double.parseDouble(map.get(1).toString());
                     }
-                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
+                    pickUpLatLng = new LatLng(locationLat,locationLng);
                     if (mPickupLocation != null) {
                         mPickupLocation.remove();
                     }
-                    mPickupLocation=mGoogleMap.addMarker(new MarkerOptions().position(driverLatLng).title("pickup location"));
+                    mPickupLocation=mGoogleMap.addMarker(new MarkerOptions().position(pickUpLatLng).title("pickup location"));
                 }
             }
 
@@ -450,7 +464,7 @@ public class driverMapsActivity extends AppCompatActivity implements OnMapReadyC
         if (isServicesOk()) {
             if (isGPSEnabled()) {
                 if (checkLocationPermission()) {
-                    Toast.makeText(this, "Ready to Map", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(this, "Ready to Map", Toast.LENGTH_SHORT).show();
 
                     SupportMapFragment supportMapFragment = (SupportMapFragment) getSupportFragmentManager()
                             .findFragmentById(R.id.map_fragment);
